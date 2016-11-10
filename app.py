@@ -1,37 +1,40 @@
-# -*- coding: utf-8 -*-
 import RPi.GPIO as GPIO
 import os
 import time
+import pygame 
 
 
 def setNetworkFiles(name, pw):
-    os.system('''echo "auto lo
+    os.system('''echo 'auto lo
 
 
-iface lo inet loopback
-iface eth0 inet dhcp
+    iface lo inet loopback
+    iface eth0 inet dhcp
+    
+    allow-hotplug wlan0
+    iface wlan0 inet manual
+    wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+    iface default inet dhcp' > /etc/network/interfaces''')
 
 
-allow-hotplug wlan0
-iface wlan0 inet manual
-wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
-iface default inet dhcp"''')
-
-
-    os.system('''echo "ctrl_interface=/var/run/wpa_supplicant
+    os.system('''echo 'ctrl_interface=/var/run/wpa_supplicant
     ctrl_interface_group=0
     update_config=1
     
     
     network={
-        ssid=%s
-        psk=%s
+        ssid="%s"
+        psk="%s"
         proto=WPA
         key_mgmt=WPA-PSK
         pairwise=TKIP
         group=TKIP
-        id_str=%s
-    }" > /etc/wpa_supplicant/wpa_supplicant.conf''' % (name, pw, name))
+        id_str="%s"
+    }' > /etc/wpa_supplicant/wpa_supplicant.conf''' % (name, pw, name))
+
+
+    os.system('sudo ifdown wlan0')
+    os.system('sudo ifup wlan0')
               
 
 
@@ -48,18 +51,20 @@ if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
 
 
-    # sets pin 17 as input
-    GPIO.setup(17,GPIO.IN)
+    # sets pin 18 as input
+    GPIO.setup(18,GPIO.IN)
 
 
     prev_input = 0
 
 
-    # Waits
+    
     while True:
-        input = GPIO.input(17)
+        input = GPIO.input(18)
         if ((not prev_input) and input):
+            print('Button Pressed')
             os.system('sudo python3 /home/pi/BlueServer/blueserver.py')
             break
         prev_input = input
         time.sleep(0.05)
+

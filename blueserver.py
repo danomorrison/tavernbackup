@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import bluetooth
 import os
 import sys
 import time
+import json
 from app import *
 
 
@@ -62,13 +62,19 @@ try:
             if len(data) == 0: break
             print('received [%s]' % data)
             if data == b'music':
-                    os.system('mopidy')
+                    os.system('mopidy --config /home/pi/.config/mopidy/mopidy.conf')
             if data == b'minecraft':
                     os.system('minecraft-pi')
             if data == b'ping':
                     client_socket.send('pong')
             if data == b'connect':
-                    setNetworkFiles('"Broadplay"', '"544kingw"')
+                    print ('connected')
+                    #decoded_data = json.loads(json_encoded)
+                    # name = decoded_data['username']
+                    # pw = decoded_data['password']
+                    
+                    setNetworkFiles('Broadplay', '544kingw')
+        
                     
 except IOError:
     pass
@@ -82,6 +88,7 @@ server_socket.close()
 
 
 print('successfully closed all connections')
+
 
 
 
