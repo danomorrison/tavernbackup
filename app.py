@@ -1,3 +1,4 @@
+
 #!/usr/bin/python
 
 import RPi.GPIO as GPIO
@@ -5,9 +6,9 @@ import os
 import time
 import pygame 
 
+
 def setNetworkFiles(name, pw):
     os.system('''echo 'auto lo
-
     iface lo inet loopback
     iface eth0 inet dhcp
     
@@ -34,8 +35,6 @@ def setNetworkFiles(name, pw):
     os.system('sudo ifdown wlan0')
     os.system('sudo ifup wlan0')
               
-
-
 # If connection is made with client, keep discoverability and bt on until connection is closed
 
 if __name__ == '__main__':
@@ -54,6 +53,6 @@ if __name__ == '__main__':
     while True:
         if(GPIO.input(18) == False):
             print('Button Pressed')
-            os.system('sudo python3 /home/pi/BlueServer/blueserver.py')
+            os.system('sudo nodejs /home/pi/BlueServer/blenoserver.js')
         prev_input = input
         time.sleep(0.03)

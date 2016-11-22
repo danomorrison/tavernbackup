@@ -5,6 +5,7 @@ var charUUID = '94f39d29-7d6d-437d-973b-fba39e49d4ee';
 var data = 'Send me something';
 var name = 'Tavern';
 var isBTConnected = false;
+var {setNetworkInfo, checkInternet} = require('./lib');
 
 // ---------------------------------------------------------------------
 // Characteristics
@@ -14,20 +15,41 @@ var writeCharacteristic = new bleno.Characteristic({
     onReadRequest : function(offset, callback) {
 		console.log(data);
 		callback(bleno.Characteristic.RESULT_SUCCESS, data.slice(offset));
-		},
+	},
     onWriteRequest : function(newData, offset, withoutResponse, callback) {
         if(offset > 0) {
             callback(bleno.Characteristic.RESULT_INVALID_OFFSET);
         } else {
-            data = newData;
-            console.log(newData);
-            callback(bleno.Characteristic.RESULT_SUCCESS);
-        }
+			var wifiInfo = JSON.parse(newData);
+			console.log("Setting wifi name to " + wifiInfo.name + " and password to " + wifiInfo.password);
+			setNetworkInfo(wifiInfo.name, wifiInfo.password);
+			// Subscribe to this characteristic after sending wifi info and await response based on updateValuecallback
+			callback(bleno.Characteristic.RESULT_SUCCESS);
+		}  
     },
     onNotify : function () {
 		isBTConnected = true;
-		console.log(isBTConnected);
+	},
+	onSubscribe : function(maxValueSize, updateValueCallback) {
+		console.log("Subscribed!");
+		this.intervalID = setInterval(function() {
+			checkInternet(function(isConnected) {
+				if (isConnected) {
+					var connectionStatus = "connected";
+					console.log("connection status " + connectionStatus);
+					updateValueCallback(connectionStatus);
+				} else {
+					var connectionStatus = "disconnected";
+					console.log("connection status " + connectionStatus);
+					updateValueCallback(connectionStatus);
+				}
+			});}, 1000); 
+	},
+	onUnsubscribe : function() {
+		console.log("Unsubscribed!");
+		clearInterval(this.intervalId);
 	}
+		
 })
 
 // ---------------------------------------------------------------------
