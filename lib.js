@@ -29,8 +29,8 @@ var setNetworkInfo = function (name, password) {
     }' > /etc/wpa_supplicant/wpa_supplicant.conf`);
     
     // Reset wireless 
-    exec('sudo ifdown wlan0');
-    exec('sudo ifup wlan0');
+    exec('sudo ifdown wlan0 > downlog.txt; sudo ifup wlan0 --force > uplog.txt');
+    
 }
 
 var checkInternet = function (isConnected) {
