@@ -9,6 +9,7 @@ function WifiCredentialsCharacteristic() {
 		uuid: charUUID,
 		properties : ['write', 'read', 'notify'],
 	});
+	
 	this.updateValueCallback = null;
 	this.checkInternetConnectionInterval = null;
 	this.attemptsCount = 0;
@@ -18,8 +19,8 @@ util.inherits(WifiCredentialsCharacteristic, bleno.Characteristic);
 
 WifiCredentialsCharacteristic.prototype.onReadRequest = function(offset, callback) {
 	console.log("Read!");
-	var data = new Buffer(1);
-	callback(bleno.Characteristic.RESULT_SUCCESS, data);
+	
+	callback(bleno.Characteristic.RESULT_SUCCESS, isConnected);
 };
 		
 WifiCredentialsCharacteristic.prototype.onWriteRequest = function(newData, offset, withoutResponse, callback) {
@@ -31,25 +32,37 @@ WifiCredentialsCharacteristic.prototype.onWriteRequest = function(newData, offse
 		var wifiInfo = JSON.parse(newData);
 		
 		console.log("Setting wifi name to " + wifiInfo.name + " and password to " + wifiInfo.password);
+		// Change PI conf files (wpa_supplicant) to connect to network
 		setNetworkInfo(wifiInfo.name, wifiInfo.password);
+		
+		// Indicate write request successfully received
 		callback(bleno.Characteristic.RESULT_SUCCESS);
 		
 		if (self.checkInternetConnectionInterval != null) {
 			clearInterval(self.checkInternetConnectionInterval);
 		}
 		self.attemptsCount = 0;
+		
+		// Check for successful wifi connection every second
 		self.checkInternetConnectionInterval = setInterval(function() {
 			checkInternet(function(isConnected) {
 				console.log(self.attemptsCount);
+				
+				// Send updateValueCallback and stop interval if successful
 				if (isConnected && self.attemptsCount >= 3) {
 					var connectionStatus = "connected";
+					
 					console.log("connection status " + connectionStatus);
 					clearInterval(self.checkInternetConnectionInterval);
 				
 					if (self.updateValueCallback != null) {
-						self.updateValueCallback(connectionStatus);
+						var data = new Buffer(connectionStatus + '|', 'utf-8');
+						self.updateValueCallback(data);
+						console.log("updateValuecallback " + connectionStatus);
+						
 					}
-					
+				
+				// Try again if disconnected state detected	
 				} else {
 					var connectionStatus = "disconnected";
 					console.log("connection status " + connectionStatus);
@@ -59,7 +72,9 @@ WifiCredentialsCharacteristic.prototype.onWriteRequest = function(newData, offse
 						clearInterval(self.checkInternetConnectionInterval);
 						
 						if (self.updateValueCallback != null) {
-							self.updateValueCallback(connectionStatus);
+							console.log("updateValuecallback " + connectionStatus);
+							var data = new Buffer(connectionStatus + '|', 'utf-8');
+							self.updateValueCallback(data);
 						}
 					} 
 				}
@@ -73,8 +88,22 @@ WifiCredentialsCharacteristic.prototype.onNotify = function () {
 };
 
 WifiCredentialsCharacteristic.prototype.onSubscribe = function(maxValueSize, updateValueCallback) {
+	
 	console.log("Subscribed!");
-	this.updateValueCallback = updateValueCallback; 
+	this.updateValueCallback = updateValueCallback;
+	
+	// Initial test for wifi connectivity
+	checkInternet(function(isConnected) {
+		if (isConnected) {
+			var data = new Buffer('connected' + '|', 'utf-8');
+			updateValueCallback(data);
+			console.log("updateValuecallback " + 'connected');
+		} else {
+			var data = new Buffer('disconnected' + '|', 'utf-8');
+			updateValueCallback(data);
+			console.log("updateValuecallback " + 'disconnected');
+		}
+	})
 };
 
 WifiCredentialsCharacteristic.prototype.onUnsubscribe = function() {
